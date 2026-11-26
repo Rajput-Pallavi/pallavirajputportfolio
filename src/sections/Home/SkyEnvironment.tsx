@@ -200,7 +200,7 @@ export default function SkyEnvironment() {
     }
     if (fog.current) {
       fog.current.color.copy(cycle.fogColor)
-      fog.current.density = 0.044 + cycle.night * 0.01 + cycle.twilight * 0.005
+      fog.current.density = 0.025 + cycle.night * 0.007 + cycle.twilight * 0.003
     }
 
     if (!clouds.current) return
@@ -222,7 +222,7 @@ export default function SkyEnvironment() {
 
   return (
     <>
-      <fogExp2 ref={fog} attach="fog" args={['#cbbfbb', 0.054]} />
+      <fogExp2 ref={fog} attach="fog" args={['#cbbfbb', 0.03]} />
       <hemisphereLight ref={hemisphere} args={['#dbe8ff', '#283447', 1.56]} />
       <directionalLight
         ref={sunlight}

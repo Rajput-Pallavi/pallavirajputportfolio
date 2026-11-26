@@ -1,4 +1,4 @@
-import { Component, Suspense, useRef, useState, type ReactNode } from 'react'
+import { Component, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Html, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { MOUSE, TOUCH } from 'three'
@@ -12,6 +12,15 @@ import DayNightController from './DayNightController'
 import CelestialDial from './CelestialDial'
 import PallaviCharacter from './PallaviCharacter'
 import JourneyController from './JourneyController'
+import JourneyNavigation from './JourneyNavigation'
+import HomeWelcome from './HomeWelcome'
+import AboutDiary from './AboutDiary'
+import SkillsDetails from './SkillsDetails'
+import WorkProjects from './WorkProjects'
+import ContactGreeting from './ContactGreeting'
+import TravellerGroundGlow from './TravellerGroundGlow'
+
+const INITIAL_SCENE_TARGET: [number, number, number] = [0, 1.6, -0.7]
 
 class SceneErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
@@ -35,18 +44,53 @@ class SceneErrorBoundary extends Component<{ children: ReactNode }, { failed: bo
 
 export default function SceneCanvas() {
   const [ready, setReady] = useState(false)
-  const [cinematicActive, setCinematicActive] = useState(true)
-  const [manualOrbitActive, setManualOrbitActive] = useState(false)
   const controlsRef = useRef<OrbitControlsImpl>(null)
   const [previewHour, setPreviewHour] = useState<number | null>(null)
   const [shivaProximity, setShivaProximity] = useState(0)
+  const [homeVisible, setHomeVisible] = useState(true)
+  const [diaryOpen, setDiaryOpen] = useState(false)
+  const [skillCategory, setSkillCategory] = useState<string | null>(null)
+  const [workVisible, setWorkVisible] = useState(false)
+  const [contactVisible, setContactVisible] = useState(false)
+  const [introActive, setIntroActive] = useState(true)
+  const displayHour = previewHour ?? new Date().getHours()
+  const isNight = displayHour >= 19 || displayHour < 6
+
+  useEffect(() => {
+    const reveal = () => setShivaProximity(1)
+    window.addEventListener('shiva:reveal', reveal)
+    return () => window.removeEventListener('shiva:reveal', reveal)
+  }, [])
+
+  useEffect(() => {
+    const navigating = () => { setHomeVisible(false); setDiaryOpen(false); setSkillCategory(null); setWorkVisible(false); setContactVisible(false) }
+    const arrived = (event: Event) => {
+      const destination = (event as CustomEvent<number>).detail
+      setHomeVisible(destination === 0)
+      if (destination === 1) setDiaryOpen(true)
+      setWorkVisible(destination === 4)
+      setContactVisible(destination === 5)
+    }
+    window.addEventListener('journey:navigate', navigating)
+    window.addEventListener('journey:arrived', arrived)
+    return () => {
+      window.removeEventListener('journey:navigate', navigating)
+      window.removeEventListener('journey:arrived', arrived)
+    }
+  }, [])
+
+  useEffect(() => {
+    const select = (event: Event) => setSkillCategory((event as CustomEvent<string>).detail)
+    window.addEventListener('skills:select', select)
+    return () => window.removeEventListener('skills:select', select)
+  }, [])
 
   return (
     <div className="relative h-dvh w-full">
       <SceneErrorBoundary>
         <Canvas
           aria-label="Interactive 3D preview"
-          camera={{ position: CAMERA_POSITIONS.wide.position, fov: 45 }}
+          camera={{ position: CAMERA_POSITIONS.wide.position, fov: 50 }}
           dpr={[1, 2]}
           frameloop="demand"
           shadows="percentage"
@@ -56,17 +100,14 @@ export default function SceneCanvas() {
           <DayNightController previewHour={previewHour}>
             <SkyEnvironment />
             <SnowParticles />
-            <CameraController
-              onCinematicChange={setCinematicActive}
-              controlsRef={controlsRef}
-              manualOrbitActive={manualOrbitActive}
-              followEnabled
-            />
-            <JourneyController enabled={!cinematicActive} />
+            <CameraController controlsRef={controlsRef} onIntroChange={setIntroActive} />
+            <JourneyController enabled />
+            <TravellerGroundGlow />
             <OrbitControls
               ref={controlsRef}
               makeDefault
-              enabled={!cinematicActive}
+              enabled={!introActive}
+              target={INITIAL_SCENE_TARGET}
               minDistance={1.6}
               maxDistance={40}
               minAzimuthAngle={-Infinity}
@@ -80,8 +121,6 @@ export default function SceneCanvas() {
               zoomSpeed={0.85}
               mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.ROTATE }}
               touches={{ ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_ROTATE }}
-              onStart={() => setManualOrbitActive(true)}
-              onEnd={() => setManualOrbitActive(false)}
             />
             <Suspense
               fallback={
@@ -102,10 +141,12 @@ export default function SceneCanvas() {
           </p>
         )}
         <CelestialDial value={previewHour} onChange={setPreviewHour} />
-        <label className="absolute bottom-5 left-5 z-20 rounded-xl border border-white/30 bg-slate-950/55 p-3 text-sm text-white backdrop-blur-sm">
-          Test Shivji reveal
-          <input className="mt-2 block w-44" type="range" min="0" max="1" step="0.01" value={shivaProximity} onChange={(event) => setShivaProximity(Number(event.target.value))} />
-        </label>
+        <JourneyNavigation isNight={isNight} />
+        <HomeWelcome visible={homeVisible} isNight={isNight} />
+        <AboutDiary open={diaryOpen} isNight={isNight} onClose={() => setDiaryOpen(false)} />
+        <SkillsDetails category={skillCategory} isNight={isNight} onClose={() => setSkillCategory(null)} />
+        <WorkProjects visible={workVisible} isNight={isNight} />
+        <ContactGreeting visible={contactVisible} isNight={isNight} />
       </SceneErrorBoundary>
     </div>
   )

@@ -1,51 +1,60 @@
 import type { ResolvedDestination } from './journeyConfig'
+import SkillsTree from './SkillsTree'
+import WorkStation from './WorkStation'
 
-function BenchAndDiary() {
+function NaturalPlatform() {
   return (
-    <group rotation={[0, -0.55, 0]}>
-      <mesh position={[0, 0.29, 0]} castShadow><boxGeometry args={[1.15, 0.12, 0.38]} /><meshStandardMaterial color="#69462d" roughness={0.82} /></mesh>
-      <mesh position={[0, 0.66, 0.16]} rotation={[-0.15, 0, 0]} castShadow><boxGeometry args={[1.15, 0.48, 0.1]} /><meshStandardMaterial color="#765037" roughness={0.82} /></mesh>
-      {[-0.43, 0.43].map((x) => <mesh key={x} position={[x, 0.12, 0]} castShadow><boxGeometry args={[0.09, 0.42, 0.3]} /><meshStandardMaterial color="#39271d" /></mesh>)}
-      <mesh position={[0.22, 0.39, -0.05]} rotation={[0, 0.2, 0]} castShadow><boxGeometry args={[0.32, 0.035, 0.24]} /><meshStandardMaterial color="#a94242" roughness={0.9} /></mesh>
+    <group position={[0, -0.015, 0]}>
+      <mesh receiveShadow castShadow><cylinderGeometry args={[0.8, 0.9, 0.1, 12]} /><meshStandardMaterial color="#77736d" roughness={1} /></mesh>
+      <mesh position={[0, 0.055, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.72, 0.055, 6, 18]} /><meshStandardMaterial color="#edf3f7" roughness={1} /></mesh>
     </group>
   )
 }
 
-function SkillsBridge() {
+function BenchAndDiary() {
   return (
-    <group>
-      {[-0.48, -0.16, 0.16, 0.48].map((x) => <mesh key={x} position={[x, 0.09, 0]} castShadow receiveShadow><boxGeometry args={[0.27, 0.14, 0.72]} /><meshStandardMaterial color="#787b82" roughness={0.96} /></mesh>)}
-      {[-0.42, 0, 0.42].map((x, index) => (
-        <group key={x} position={[x, 0.72, 0]}>
-          <mesh castShadow><icosahedronGeometry args={[0.17, 1]} /><meshStandardMaterial color="#72d6ff" emissive="#1d7fa8" emissiveIntensity={0.75} /></mesh>
-          {index === 1 && <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.27, 0.025, 8, 24]} /><meshStandardMaterial color="#d9fbff" emissive="#63d9ff" emissiveIntensity={1.1} /></mesh>}
-        </group>
-      ))}
+    <group rotation={[0, -0.25, 0]}>
+      {[-0.72, 0.72].map((x) => <mesh key={x} position={[x, 0.72, 0.18]} castShadow><cylinderGeometry args={[0.08, 0.12, 1.45, 8]} /><meshStandardMaterial color="#5b3825" roughness={0.9} /></mesh>)}
+      <mesh position={[0, 1.48, 0.18]} rotation={[0, Math.PI / 4, 0]} castShadow><coneGeometry args={[1.12, 0.35, 4]} /><meshStandardMaterial color="#68432a" roughness={0.88} /></mesh>
+      <mesh position={[0, 1.64, 0.18]} rotation={[0, Math.PI / 4, 0]}><coneGeometry args={[1.08, 0.18, 4]} /><meshStandardMaterial color="#edf4f7" roughness={1} /></mesh>
+      <mesh position={[0, 0.47, 0]} castShadow><cylinderGeometry args={[0.18, 0.28, 0.82, 6]} /><meshStandardMaterial color="#67432b" roughness={0.88} /></mesh>
+      <group position={[0, 0.9, -0.03]}>
+        <mesh position={[-0.18, 0, 0]} rotation={[0.08, 0.18, -0.05]}><boxGeometry args={[0.36, 0.025, 0.48]} /><meshStandardMaterial color="#eee1bf" roughness={0.95} /></mesh>
+        <mesh position={[0.18, 0, 0]} rotation={[0.08, -0.18, 0.05]}><boxGeometry args={[0.36, 0.025, 0.48]} /><meshStandardMaterial color="#f5e9c9" roughness={0.95} /></mesh>
+      </group>
     </group>
   )
 }
 
 function PrayerPlatform() {
-  return <mesh position={[0, 0.06, 0]} receiveShadow castShadow><cylinderGeometry args={[0.62, 0.72, 0.12, 10]} /><meshStandardMaterial color="#aaa49a" roughness={0.95} /></mesh>
-}
-
-function Workspace() {
-  return (
-    <group rotation={[0, -0.65, 0]}>
-      <mesh position={[0, 0.42, 0]} castShadow><boxGeometry args={[1.15, 0.1, 0.62]} /><meshStandardMaterial color="#71472b" roughness={0.72} /></mesh>
-      {[-0.45, 0.45].flatMap((x) => [-0.22, 0.22].map((z) => <mesh key={`${x}-${z}`} position={[x, 0.19, z]} castShadow><boxGeometry args={[0.08, 0.45, 0.08]} /><meshStandardMaterial color="#442b1e" /></mesh>))}
-      <mesh position={[0, 0.5, 0]} castShadow><boxGeometry args={[0.48, 0.035, 0.32]} /><meshStandardMaterial color="#353a42" metalness={0.55} /></mesh>
-      <mesh position={[0, 0.72, 0.13]} rotation={[-0.15, 0, 0]} castShadow><boxGeometry args={[0.48, 0.36, 0.035]} /><meshStandardMaterial color="#24344a" emissive="#4e9bd1" emissiveIntensity={0.32} /></mesh>
-    </group>
-  )
+  return <group><mesh position={[0, 0.06, 0]} receiveShadow castShadow><cylinderGeometry args={[0.68, 0.78, 0.12, 10]} /><meshStandardMaterial color="#8e8981" roughness={0.98} /></mesh>{[-0.48, 0.48].map((x) => <group key={x} position={[x, 0.18, -0.28]}><mesh><cylinderGeometry args={[0.09, 0.12, 0.06, 10]} /><meshStandardMaterial color="#8a572d" roughness={0.9} /></mesh><mesh position={[0, 0.08, 0]}><sphereGeometry args={[0.035, 8, 6]} /><meshStandardMaterial color="#ffd27c" emissive="#ff9f3f" emissiveIntensity={2} /></mesh><pointLight position={[0, 0.1, 0]} color="#ffbd68" intensity={0.35} distance={1.2} /></group>)}</group>
 }
 
 function Viewpoint() {
   return (
     <group>
       <mesh position={[0, 0.04, 0]} receiveShadow><cylinderGeometry args={[0.72, 0.82, 0.08, 12]} /><meshStandardMaterial color="#8d8b87" roughness={0.96} /></mesh>
-      {[-0.58, 0, 0.58].map((x) => <mesh key={x} position={[x, 0.4, -0.5]} castShadow><cylinderGeometry args={[0.025, 0.035, 0.8, 8]} /><meshStandardMaterial color="#574536" /></mesh>)}
+      {[-0.58, 0, 0.58].map((x) => <mesh key={x} position={[x, 0.4, -0.5]} castShadow><cylinderGeometry args={[0.035, 0.055, 0.8, 8]} /><meshStandardMaterial color="#574536" /></mesh>)}
       <mesh position={[0, 0.72, -0.5]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.025, 0.025, 1.25, 8]} /><meshStandardMaterial color="#574536" /></mesh>
+      {[-0.58, 0.58].map((x) => <group key={x} position={[x, 0.82, -0.5]}><mesh><boxGeometry args={[0.13, 0.2, 0.13]} /><meshStandardMaterial color="#60412d" /></mesh><mesh><sphereGeometry args={[0.045, 8, 6]} /><meshStandardMaterial color="#ffd38a" emissive="#ffad4d" emissiveIntensity={2} /></mesh><pointLight color="#ffc06b" intensity={0.35} distance={1.5} /></group>)}
+    </group>
+  )
+}
+
+function HomeEntrance() {
+  return (
+    <group position={[0, 0, -0.08]}>
+      {[-0.78, 0.78].map((x) => (
+        <group key={x}>
+          <mesh position={[x, 0.78, 0]} castShadow><cylinderGeometry args={[0.12, 0.16, 1.55, 10]} /><meshStandardMaterial color="#5b3824" roughness={0.86} /></mesh>
+          <mesh position={[x, 1.58, 0]} scale={[1, 0.28, 1]}><sphereGeometry args={[0.17, 10, 6]} /><meshStandardMaterial color="#edf4f8" roughness={1} /></mesh>
+          <mesh position={[x * 0.78, 1.18, 0.08]} castShadow><cylinderGeometry args={[0.09, 0.11, 0.25, 8]} /><meshStandardMaterial color="#7b542f" roughness={0.75} /></mesh>
+          <mesh position={[x * 0.78, 1.18, 0.08]}><sphereGeometry args={[0.065, 12, 8]} /><meshStandardMaterial color="#ffd58a" emissive="#ff9f43" emissiveIntensity={2.2} /></mesh>
+          <pointLight position={[x * 0.78, 1.18, 0.2]} color="#ffc06a" intensity={1.1} distance={2.4} decay={2} />
+        </group>
+      ))}
+      <mesh position={[0, 1.55, 0]} castShadow><boxGeometry args={[1.75, 0.22, 0.24]} /><meshStandardMaterial color="#654027" roughness={0.84} /></mesh>
+      <mesh position={[0, 1.68, 0]} scale={[1, 0.3, 1]}><boxGeometry args={[1.82, 0.18, 0.29]} /><meshStandardMaterial color="#edf4f8" roughness={1} /></mesh>
     </group>
   )
 }
@@ -53,11 +62,12 @@ function Viewpoint() {
 export default function PortfolioDestinations({ destinations }: { destinations: ResolvedDestination[] }) {
   return destinations.map((destination) => (
     <group key={destination.id} name={`${destination.id}-destination`} position={destination.position} userData={destination}>
-      {destination.id === 'home' && <Viewpoint />}
+      <NaturalPlatform />
+      {destination.id === 'home' && <HomeEntrance />}
       {destination.id === 'about' && <BenchAndDiary />}
-      {destination.id === 'skills' && <SkillsBridge />}
+      {destination.id === 'skills' && <SkillsTree />}
       {destination.id === 'faith' && <PrayerPlatform />}
-      {destination.id === 'work' && <Workspace />}
+      {destination.id === 'work' && <WorkStation />}
       {destination.id === 'contact' && <Viewpoint />}
     </group>
   ))

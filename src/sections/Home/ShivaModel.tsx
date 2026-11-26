@@ -7,7 +7,6 @@ import {
   type Material, type PointLight,
 } from 'three'
 import { useDayNight } from './DayNightController'
-import ShivaWaterfall from './ShivaWaterfall'
 
 const modelUrl = '/models/shiva.optimized.glb'
 const worldPosition: [number, number, number] = [-0.75, -0.85, -4.7]
@@ -33,7 +32,6 @@ export default function ShivaModel({ proximity = 0 }: ShivaModelProps) {
   const auraLight = useRef<PointLight>(null)
   const divineLight = useRef<PointLight>(null)
   const progress = useRef(0)
-  const waterfallReveal = useRef(0)
   const elapsed = useRef(0)
   const reducedMotion = useRef(false)
   const isSolid = useRef(false)
@@ -92,7 +90,6 @@ export default function ShivaModel({ proximity = 0 }: ShivaModelProps) {
     progress.current = reducedMotion.current ? target : MathUtils.damp(progress.current, target, 1.8, delta)
     const value = progress.current
     const modelOpacity = MathUtils.smoothstep(value, 0.08, 0.82)
-    waterfallReveal.current = value
     const cloudFade = Math.sin(Math.PI * value)
     const cycle = dayNight.current
     elapsed.current += delta
@@ -144,7 +141,6 @@ export default function ShivaModel({ proximity = 0 }: ShivaModelProps) {
 
   return (
     <>
-    <ShivaWaterfall reveal={waterfallReveal} origin={worldPosition} />
     <group name="shivji" position={worldPosition}>
       <group ref={reveal} scale={giantScale}>
         <group ref={modelGroup} visible={false} position={offset}><primitive object={model} /></group>

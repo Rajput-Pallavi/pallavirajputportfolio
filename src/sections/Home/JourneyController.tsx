@@ -1,84 +1,77 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { MathUtils, Vector3 } from 'three'
+import { MathUtils } from 'three'
 import type { ResolvedDestination } from './journeyConfig'
 
-type PathPoint = [number, number, number]
 type JourneyStop = ResolvedDestination & { pathProgress: number }
+type Teleport = { destination: number; elapsed: number; relocated: boolean }
+
+function destinationMotion(index: number) {
+  return ['home-wave', 'about-read', 'skills-look', 'prayer', 'work-view', 'home-wave'][index] ?? 'idle'
+}
 
 export default function JourneyController({ enabled }: { enabled: boolean }) {
   const scene = useThree((state) => state.scene)
   const invalidate = useThree((state) => state.invalidate)
-  const targetSection = useRef(0)
-  const currentSection = useRef(0)
-  const direction = useRef(1)
-  const snapTimer = useRef<number | undefined>(undefined)
-  const position = useMemo(() => new Vector3(), [])
-  const nextPosition = useMemo(() => new Vector3(), [])
+  const teleport = useRef<Teleport | null>(null)
+  const initialized = useRef(false)
 
   useEffect(() => {
-    const syncScroll = () => {
+    const navigate = (event: Event) => {
       if (!enabled) return
-      const range = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
-      const section = MathUtils.clamp(window.scrollY / range, 0, 1) * 5
-      const difference = section - targetSection.current
-      if (Math.abs(difference) > 0.0001) direction.current = Math.sign(difference)
-      targetSection.current = section
-      window.clearTimeout(snapTimer.current)
-      snapTimer.current = window.setTimeout(() => {
-        targetSection.current = Math.round(section)
-        invalidate()
-      }, 140)
+      teleport.current = { destination: MathUtils.clamp((event as CustomEvent<number>).detail, 0, 5), elapsed: 0, relocated: false }
+      const traveller = scene.getObjectByName('pallavi-character')
+      if (traveller) traveller.userData.motion = 'teleport'
       invalidate()
     }
-    syncScroll()
-    window.addEventListener('scroll', syncScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', syncScroll)
-      window.clearTimeout(snapTimer.current)
-    }
-  }, [enabled, invalidate])
+    window.addEventListener('journey:navigate', navigate)
+    return () => window.removeEventListener('journey:navigate', navigate)
+  }, [enabled, invalidate, scene])
 
   useFrame((_, delta) => {
     if (!enabled) return
     const mountain = scene.getObjectByName('kailash-mountain')
     const traveller = scene.getObjectByName('pallavi-character')
-    const path = mountain?.userData.walkingPath as PathPoint[] | undefined
     const stops = mountain?.userData.journeyStops as JourneyStop[] | undefined
-    if (!traveller || !path?.length || !stops?.length) return
+    if (!traveller || !stops?.length) return
 
-    currentSection.current = MathUtils.damp(currentSection.current, targetSection.current, 5.8, delta)
-    const section = MathUtils.clamp(currentSection.current, 0, stops.length - 1)
-    const stopIndex = Math.min(stops.length - 2, Math.floor(section))
-    const sectionBlend = MathUtils.smootherstep(section - stopIndex, 0, 1)
-    const pathProgress = MathUtils.lerp(stops[stopIndex].pathProgress, stops[stopIndex + 1].pathProgress, sectionBlend)
-    const scaledPath = pathProgress * (path.length - 1)
-    const pathIndex = Math.min(path.length - 2, Math.floor(scaledPath))
-    const pathBlend = scaledPath - pathIndex
-    position.fromArray(path[pathIndex]).lerp(nextPosition.fromArray(path[pathIndex + 1]), pathBlend)
-    traveller.position.set(position.x, position.y + 0.03, position.z)
-
-    const travelDelta = targetSection.current - currentSection.current
-    const moving = Math.abs(travelDelta) > 0.0015
-    if (moving) direction.current = Math.sign(travelDelta)
-    let facingX: number
-    let facingZ: number
-    if (moving) {
-      const previous = path[Math.max(0, pathIndex - 1)]
-      const next = path[Math.min(path.length - 1, pathIndex + 1)]
-      facingX = (next[0] - previous[0]) * direction.current
-      facingZ = (next[2] - previous[2]) * direction.current
-    } else {
-      const stop = stops[Math.round(section)]
-      facingX = stop.facing[0]
-      facingZ = stop.facing[2]
+    if (!initialized.current) {
+      const home = stops[0]
+      traveller.position.set(home.position[0], home.position[1] + 0.03, home.position[2])
+      traveller.rotation.y = 0
+      traveller.userData.groundY = home.position[1] + 0.03
+      traveller.userData.teleportOpacity = 1
+      traveller.userData.teleportGlow = 0
+      traveller.userData.motion = destinationMotion(0)
+      initialized.current = true
     }
-    const desiredYaw = Math.atan2(facingX, facingZ)
-    const yawDifference = Math.atan2(Math.sin(desiredYaw - traveller.rotation.y), Math.cos(desiredYaw - traveller.rotation.y))
-    traveller.rotation.y += yawDifference * (1 - Math.exp(-9 * delta))
-    traveller.userData.motion = moving ? 'walk' : 'idle'
-    traveller.userData.direction = direction.current
-    if (moving) invalidate()
+
+    const active = teleport.current
+    if (!active) return
+    active.elapsed += delta
+    const progress = MathUtils.clamp(active.elapsed / 1.5, 0, 1)
+    const half = progress < 0.5 ? progress * 2 : (progress - 0.5) * 2
+    traveller.userData.teleportOpacity = progress < 0.5 ? 1 - MathUtils.smootherstep(half, 0, 1) : MathUtils.smootherstep(half, 0, 1)
+    traveller.userData.teleportGlow = Math.sin(Math.PI * progress)
+    traveller.userData.motion = 'teleport'
+
+    if (progress >= 0.5 && !active.relocated) {
+      const stop = stops[active.destination]
+      traveller.position.set(stop.position[0], stop.position[1] + 0.03, stop.position[2])
+      traveller.userData.groundY = stop.position[1] + 0.03
+      const facing = active.destination === 3 ? stop.facing : active.destination === 0 || active.destination === 5 ? [0, 0, 1] : stop.facing
+      traveller.rotation.y = Math.atan2(facing[0], facing[2])
+      active.relocated = true
+    }
+
+    if (progress >= 1) {
+      traveller.userData.teleportOpacity = 1
+      traveller.userData.teleportGlow = 0
+      traveller.userData.motion = destinationMotion(active.destination)
+      window.dispatchEvent(new CustomEvent('journey:arrived', { detail: active.destination }))
+      teleport.current = null
+    }
+    invalidate()
   })
 
   return null

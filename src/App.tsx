@@ -1,18 +1,13 @@
+import { lazy, Suspense } from 'react'
 
-import Home from './sections/Home/Home'
-import AboutMe from './sections/AboutMe/AboutMe'
-import Skills from './sections/Skills/Skills'
-import MyWork from './sections/MyWork/MyWork'
-import Contact from './sections/Contact/Contact'
+const Portfolio = lazy(() => import('./PortfolioApp'))
+const demos = {
+  '/demo/automobile': lazy(() => import('./demos/AutomobileDemo')),
+  '/demo/real-estate': lazy(() => import('./demos/RealEstateDemo')),
+  '/demo/ai': lazy(() => import('./demos/AiDemo')),
+} as const
 
 export default function App() {
-  return (
-    <>
-      <Home />
-      <AboutMe />
-      <Skills />
-      <MyWork />
-      <Contact />
-    </>
-  )
+  const Demo = demos[window.location.pathname as keyof typeof demos]
+  return <Suspense fallback={null}>{Demo ? <Demo /> : <Portfolio />}</Suspense>
 }

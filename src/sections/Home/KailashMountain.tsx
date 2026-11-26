@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import {
-  BufferGeometry, CatmullRomCurve3, Color, DataTexture, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter,
+  BufferGeometry, CatmullRomCurve3, CircleGeometry, Color, DataTexture, Float32BufferAttribute, LinearFilter, LinearMipmapLinearFilter,
   MathUtils, PlaneGeometry, RepeatWrapping, RGBAFormat, Vector3,
 } from 'three'
 import PortfolioDestinations from './PortfolioDestinations'
@@ -9,8 +9,8 @@ import { JOURNEY_PATH_WAYPOINTS, resolveDestinations } from './journeyConfig'
 const { lerp, smoothstep } = MathUtils
 
 const terraces = [
-  { name: 'shivji-terrace', x: -1.25, z: 1.65, y: 0.24, width: 0.46, depth: 0.36 },
-  { name: 'workspace-terrace', x: 1.9, z: 1.85, y: 0.08, width: 0.47, depth: 0.34 },
+  { name: 'shivji-terrace', x: -0.75, z: 1.65, y: 0.24, width: 0.46, depth: 0.36 },
+  { name: 'workspace-terrace', x: 5.35, z: -0.9, y: 0.08, width: 0.47, depth: 0.34 },
 ] as const
 
 // [x, z, height, footprint width, footprint depth]
@@ -89,7 +89,9 @@ function createJourneyPath() {
     return point
   })
   const positions: number[] = []
+  const edgePositions: number[] = []
   const indices: number[] = []
+  const edgeIndices: number[] = []
   const width = 0.21
   samples.forEach((point, index) => {
     const previous = samples[Math.max(0, index - 1)]
@@ -101,15 +103,32 @@ function createJourneyPath() {
     const nz = dx / length * width
     positions.push(point.x + nx, terrainHeight(point.x + nx, point.z + nz) + 0.035, point.z + nz)
     positions.push(point.x - nx, terrainHeight(point.x - nx, point.z - nz) + 0.035, point.z - nz)
+    const ex = -dz / length * 0.3
+    const ez = dx / length * 0.3
+    edgePositions.push(
+      point.x + ex, terrainHeight(point.x + ex, point.z + ez) + 0.045, point.z + ez,
+      point.x + nx, terrainHeight(point.x + nx, point.z + nz) + 0.045, point.z + nz,
+      point.x - nx, terrainHeight(point.x - nx, point.z - nz) + 0.045, point.z - nz,
+      point.x - ex, terrainHeight(point.x - ex, point.z - ez) + 0.045, point.z - ez,
+    )
     if (index < samples.length - 1) {
       const base = index * 2
       indices.push(base, base + 2, base + 1, base + 2, base + 3, base + 1)
+      const edgeBase = index * 4
+      edgeIndices.push(
+        edgeBase, edgeBase + 4, edgeBase + 1, edgeBase + 4, edgeBase + 5, edgeBase + 1,
+        edgeBase + 2, edgeBase + 6, edgeBase + 3, edgeBase + 6, edgeBase + 7, edgeBase + 3,
+      )
     }
   })
   const geometry = new BufferGeometry()
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
   geometry.setIndex(indices)
   geometry.computeVertexNormals()
+  const edgeGeometry = new BufferGeometry()
+  edgeGeometry.setAttribute('position', new Float32BufferAttribute(edgePositions, 3))
+  edgeGeometry.setIndex(edgeIndices)
+  edgeGeometry.computeVertexNormals()
   const journeyStops = destinations.map((destination) => {
     let nearestIndex = 0
     let nearestDistance = Number.POSITIVE_INFINITY
@@ -122,7 +141,11 @@ function createJourneyPath() {
     })
     return { ...destination, pathProgress: nearestIndex / (samples.length - 1) }
   })
-  return { geometry, walkingPath: samples.map(({ x, y, z }) => [x, y, z]), destinations: journeyStops }
+  return { geometry, edgeGeometry, walkingPath: samples.map(({ x, y, z }) => [x, y, z] as [number, number, number]), destinations: journeyStops }
+}
+
+function createOuterTerrain() {
+  return new CircleGeometry(120, 128).rotateX(-Math.PI / 2)
 }
 
 function createTerrain() {
@@ -137,7 +160,9 @@ function createTerrain() {
   const color = new Color()
 
   for (let i = 0; i < positions.count; i++) {
-    positions.setY(i, terrainHeight(positions.getX(i), positions.getZ(i)))
+    const x = positions.getX(i), z = positions.getZ(i)
+    const edgeBlend = smoothstep(Math.max(Math.abs(x), Math.abs(z)), 6.9, 8.45)
+    positions.setY(i, lerp(terrainHeight(x, z), -0.52, edgeBlend))
   }
   geometry.computeVertexNormals()
   const normals = geometry.attributes.normal
@@ -196,14 +221,21 @@ export default function KailashMountain() {
   const terrain = useMemo(createTerrain, [])
   const rockTexture = useMemo(createRockTexture, [])
   const journey = useMemo(createJourneyPath, [])
+  const outerTerrain = useMemo(createOuterTerrain, [])
 
   useEffect(() => () => {
     terrain.dispose()
     rockTexture.dispose()
     journey.geometry.dispose()
-  }, [terrain, rockTexture, journey])
+    journey.edgeGeometry.dispose()
+    outerTerrain.dispose()
+  }, [terrain, rockTexture, journey, outerTerrain])
 
   return (
+    <>
+    <mesh geometry={outerTerrain} position={[0, -0.52, 0]} receiveShadow>
+      <meshStandardMaterial color="#e7edf4" roughness={1} />
+    </mesh>
     <group name="kailash-mountain" userData={{ walkingPath: journey.walkingPath, journeyStops: journey.destinations }}>
       <mesh geometry={terrain} castShadow receiveShadow>
         <meshStandardMaterial vertexColors roughness={0.96} bumpMap={rockTexture} bumpScale={0.035} />
@@ -211,8 +243,18 @@ export default function KailashMountain() {
       <mesh geometry={journey.geometry} receiveShadow>
         <meshStandardMaterial color="#9d8d79" roughness={0.98} polygonOffset polygonOffsetFactor={-1} />
       </mesh>
+      <mesh geometry={journey.edgeGeometry} receiveShadow>
+        <meshStandardMaterial color="#eef4f8" roughness={1} polygonOffset polygonOffsetFactor={-2} />
+      </mesh>
+      {journey.walkingPath.filter((_, index) => index % 12 === 4).map(([x, y, z], index) => (
+        <mesh key={index} position={[x, y + 0.035, z]} rotation={[0, index * 1.37, 0]} scale={[1.25, 0.28, 0.8]} receiveShadow>
+          <dodecahedronGeometry args={[0.105, 0]} />
+          <meshStandardMaterial color={index % 3 === 0 ? '#817568' : '#a39787'} roughness={1} />
+        </mesh>
+      ))}
       <PortfolioDestinations destinations={journey.destinations} />
       {terraces.map(({ name, x, y, z }) => <group key={name} name={name} position={[x, y, z]} />)}
     </group>
+    </>
   )
 }

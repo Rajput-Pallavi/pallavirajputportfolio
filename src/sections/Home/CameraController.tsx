@@ -1,167 +1,86 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { Html } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { MathUtils, Mesh, Raycaster, Vector3 } from 'three'
+import { Box3, CatmullRomCurve3, MathUtils, PerspectiveCamera, Vector3, type Group } from 'three'
 import gsap from 'gsap'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import Eagle from './Eagle'
 
-type CameraPose = {
-  position: [number, number, number]
-  target: [number, number, number]
-}
+export const CAMERA_POSITIONS = { wide: { position: [0, 8.8, 22] as [number, number, number] } }
+let introCompletedThisLoad = false
 
-export const CAMERA_POSITIONS = {
-  wide: { position: [11.5, 7.2, 15.5], target: [-0.75, 3.2, -3.3] },
-  pathway: { position: [4.5, 2.15, 5.8], target: [0.1, 0.38, 1.75] },
-  shivjiTerrace: { position: [7.2, 4.4, 10.5], target: [-0.75, 3.1, -3.6] },
-  characterJourney: { position: [3.65, 1.55, 4.35], target: [0.45, 0.3, 1.95] },
-  laptopWorkspace: { position: [3.55, 1.3, 3.25], target: [1.9, 0.3, 1.85] },
-} as const satisfies Record<string, CameraPose>
-
-type CameraControllerProps = {
-  onCinematicChange: (active: boolean) => void
+export default function CameraController({ controlsRef, onIntroChange }: {
   controlsRef: MutableRefObject<OrbitControlsImpl | null>
-  manualOrbitActive: boolean
-  followEnabled?: boolean
-}
-
-export default function CameraController({ onCinematicChange, controlsRef, manualOrbitActive, followEnabled = false }: CameraControllerProps) {
+  onIntroChange: (active: boolean) => void
+}) {
   const camera = useThree((state) => state.camera)
   const scene = useThree((state) => state.scene)
   const invalidate = useThree((state) => state.invalidate)
+  const bounds = useMemo(() => new Box3(), [])
+  const center = useMemo(() => new Vector3(), [])
+  const size = useMemo(() => new Vector3(), [])
+  const point = useMemo(() => new Vector3(), [])
+  const defaultPosition = useMemo(() => new Vector3(), [])
+  const defaultTarget = useMemo(() => new Vector3(), [])
+  const eaglePosition = useMemo(() => new Vector3(), [])
+  const tangent = useMemo(() => new Vector3(), [])
+  const followPosition = useMemo(() => new Vector3(), [])
+  const lookTarget = useMemo(() => new Vector3(), [])
+  const eagle = useRef<Group>(null)
+  const path = useRef<CatmullRomCurve3 | null>(null)
   const timeline = useRef<gsap.core.Timeline>(null)
-  const prefersReducedMotion = useRef(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const travellerFocus = useMemo(() => new Vector3(), [])
-  const previousFocus = useMemo(() => new Vector3(), [])
-  const focusDelta = useMemo(() => new Vector3(), [])
-  const hasFocus = useRef(false)
-  const raycaster = useMemo(() => new Raycaster(), [])
-  const rayOrigin = useMemo(() => new Vector3(), [])
-  const down = useMemo(() => new Vector3(0, -1, 0), [])
-  const pose = useRef({
-    x: CAMERA_POSITIONS.wide.position[0],
-    y: CAMERA_POSITIONS.wide.position[1],
-    z: CAMERA_POSITIONS.wide.position[2],
-    tx: CAMERA_POSITIONS.wide.target[0],
-    ty: CAMERA_POSITIONS.wide.target[1],
-    tz: CAMERA_POSITIONS.wide.target[2],
-  })
+  const motion = useRef({ progress: 0, blend: 0 })
+  const framed = useRef(false)
+  const running = useRef(false)
+  const [showSkip, setShowSkip] = useState(false)
 
-  const applyPose = useCallback(() => {
-    const current = pose.current
-    camera.position.set(current.x, current.y, current.z)
-    camera.lookAt(current.tx, current.ty, current.tz)
-    camera.updateMatrixWorld()
-    invalidate()
-  }, [camera, invalidate])
+  const finish = useCallback(() => {
+    timeline.current?.kill(); timeline.current = null
+    const controls = controlsRef.current
+    camera.position.copy(defaultPosition)
+    if (controls) { controls.target.copy(defaultTarget); controls.update() }
+    camera.lookAt(defaultTarget); camera.updateMatrixWorld()
+    running.current = false; introCompletedThisLoad = true; setShowSkip(false); onIntroChange(false); invalidate()
+  }, [camera, controlsRef, defaultPosition, defaultTarget, invalidate, onIntroChange])
 
-  const setPose = useCallback((next: CameraPose) => {
-    Object.assign(pose.current, {
-      x: next.position[0], y: next.position[1], z: next.position[2],
-      tx: next.target[0], ty: next.target[1], tz: next.target[2],
-    })
-    applyPose()
-  }, [applyPose])
+  useEffect(() => () => { timeline.current?.kill() }, [])
 
-  const finishIntro = useCallback(() => {
-    timeline.current?.kill()
-    timeline.current = null
-    setPose(CAMERA_POSITIONS.shivjiTerrace)
-    setIsPlaying(false)
-    onCinematicChange(false)
-  }, [onCinematicChange, setPose])
-
-  const playIntro = useCallback(() => {
-    timeline.current?.kill()
-    setPose(CAMERA_POSITIONS.wide)
-
-    if (prefersReducedMotion.current) {
-      finishIntro()
+  useFrame(() => {
+    const controls = controlsRef.current
+    if (!framed.current) {
+      const mountain = scene.getObjectByName('kailash-mountain'), shivji = scene.getObjectByName('shivji')
+      if (!mountain || !shivji || !controls) return
+      bounds.makeEmpty().expandByObject(mountain).expandByObject(shivji)
+      const stops = mountain.userData.journeyStops as Array<{ position: [number, number, number] }> | undefined
+      stops?.forEach((stop) => bounds.expandByPoint(point.fromArray(stop.position)))
+      bounds.getCenter(center); bounds.getSize(size)
+      const perspective = camera as PerspectiveCamera
+      const vfov = MathUtils.degToRad(perspective.fov), hfov = 2 * Math.atan(Math.tan(vfov / 2) * perspective.aspect)
+      const distance = 1.16 * (Math.max(size.y / (2 * Math.tan(vfov / 2)), size.x / (2 * Math.tan(hfov / 2))) + size.z / 2)
+      defaultPosition.set(center.x, center.y + distance * .12, center.z + distance); defaultTarget.copy(center)
+      perspective.near = Math.max(.05, distance / 500); perspective.far = Math.max(100, distance + size.length() * 4); perspective.updateProjectionMatrix()
+      framed.current = true
+      if (introCompletedThisLoad) { finish(); return }
+      path.current = new CatmullRomCurve3([
+        center.clone().add(new Vector3(-7, size.y + 9, 12)), center.clone().add(new Vector3(-4, size.y + 6, 7)),
+        center.clone().add(new Vector3(0, size.y + 2.5, 2)), center.clone().add(new Vector3(5, size.y + 8, -5)),
+      ], false, 'centripetal')
+      running.current = true; setShowSkip(true); onIntroChange(true)
+      timeline.current = gsap.timeline({ onUpdate: invalidate, onComplete: finish })
+        .to(motion.current, { progress: .78, duration: 6, ease: 'power1.inOut' })
+        .to(motion.current, { progress: 1, blend: 1, duration: 2, ease: 'power2.inOut' })
       return
     }
-
-    setIsPlaying(true)
-    onCinematicChange(true)
-    const toValues = (next: CameraPose) => ({
-      x: next.position[0], y: next.position[1], z: next.position[2],
-      tx: next.target[0], ty: next.target[1], tz: next.target[2],
-    })
-
-    timeline.current = gsap.timeline({
-      defaults: { ease: 'power2.inOut' },
-      onUpdate: applyPose,
-      onComplete: finishIntro,
-    })
-      .to(pose.current, { ...toValues(CAMERA_POSITIONS.pathway), duration: 4.2 })
-      .to(pose.current, { ...toValues(CAMERA_POSITIONS.shivjiTerrace), duration: 3.2 }, '>-0.35')
-  }, [applyPose, finishIntro, onCinematicChange, setPose])
-
-  useEffect(() => {
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    prefersReducedMotion.current = motion.matches
-    playIntro()
-
-    const updateMotion = () => {
-      prefersReducedMotion.current = motion.matches
-      if (motion.matches && timeline.current) finishIntro()
-    }
-    motion.addEventListener('change', updateMotion)
-    return () => {
-      motion.removeEventListener('change', updateMotion)
-      timeline.current?.kill()
-      onCinematicChange(false)
-    }
-  }, [finishIntro, onCinematicChange, playIntro])
-
-  useFrame((_, delta) => {
-    const traveller = scene.getObjectByName('pallavi-character')
-    const controls = controlsRef.current
-    if (traveller && controls && !isPlaying) {
-      traveller.getWorldPosition(travellerFocus)
-      travellerFocus.y += 0.9
-      if (!hasFocus.current) {
-        previousFocus.copy(travellerFocus)
-        controls.target.copy(travellerFocus)
-        controls.update()
-        hasFocus.current = true
-      } else if (followEnabled) {
-        focusDelta.subVectors(travellerFocus, previousFocus)
-        if (!manualOrbitActive) camera.position.add(focusDelta)
-        controls.target.copy(travellerFocus)
-        controls.update()
-        previousFocus.copy(travellerFocus)
-        invalidate()
-      }
-    }
-
-    if (isPlaying) return
-    const mountain = scene.getObjectByName('kailash-mountain')
-    if (!mountain) return
-    rayOrigin.set(camera.position.x, 20, camera.position.z)
-    raycaster.set(rayOrigin, down)
-    const terrainHit = raycaster.intersectObject(mountain, true)
-      .find((hit) => hit.object instanceof Mesh && hit.object.geometry.type === 'PlaneGeometry')
-    if (!terrainHit) return
-    const minimumY = terrainHit.point.y + 0.28
-    if (camera.position.y < minimumY) {
-      camera.position.y = MathUtils.damp(camera.position.y, minimumY, 14, delta)
-      camera.updateMatrixWorld()
-      invalidate()
-    }
+    if (!running.current || !path.current || !eagle.current || !controls) return
+    path.current.getPointAt(motion.current.progress, eaglePosition)
+    path.current.getTangentAt(Math.min(.999, motion.current.progress), tangent).normalize()
+    eagle.current.position.copy(eaglePosition); eagle.current.lookAt(point.copy(eaglePosition).add(tangent))
+    eagle.current.scale.setScalar(.8 * MathUtils.lerp(1, .22, MathUtils.smoothstep(motion.current.progress, .78, 1)))
+    followPosition.copy(eaglePosition).addScaledVector(tangent, -4.2); followPosition.y += 1.7
+    camera.position.copy(followPosition).lerp(defaultPosition, motion.current.blend)
+    lookTarget.copy(eaglePosition).addScaledVector(tangent, 2).lerp(defaultTarget, motion.current.blend)
+    controls.target.copy(lookTarget); controls.update(); camera.updateMatrixWorld()
   })
 
-  return (
-    <Html fullscreen zIndexRange={[20, 0]}>
-      <div className="pointer-events-none flex h-full items-end justify-end p-5">
-        <button
-          type="button"
-          onClick={isPlaying ? finishIntro : playIntro}
-          className="pointer-events-auto rounded-full border border-white/40 bg-slate-950/55 px-5 py-2.5 text-base text-white backdrop-blur-sm"
-        >
-          {isPlaying ? 'Skip Intro' : 'Replay Intro'}
-        </button>
-      </div>
-    </Html>
-  )
+  return <><Eagle ref={eagle} active={running.current} />{showSkip && <Html fullscreen zIndexRange={[30, 0]}><button type="button" onClick={finish} className="absolute bottom-5 right-5 rounded-full border border-white/30 bg-slate-950/35 px-4 py-2 text-sm text-white backdrop-blur-sm">Skip Intro</button></Html>}</>
 }

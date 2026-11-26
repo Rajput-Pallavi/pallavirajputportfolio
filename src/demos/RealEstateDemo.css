@@ -1,0 +1,197 @@
+.aurelia {
+  --ae-ivory: #f7f4eb;
+  --ae-ink: #252b20;
+  --ae-olive: #414a32;
+  --ae-muted: #55594d;
+  --ae-line: #d8d4c7;
+  --ae-serif: Georgia, 'Times New Roman', serif;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  background: var(--ae-ivory);
+  color: var(--ae-ink);
+  font: 1rem/1.55 system-ui, sans-serif;
+  color-scheme: light;
+}
+
+.aurelia :is(a, button, input, select):focus-visible {
+  outline: 2px solid #a97d3f;
+  outline-offset: 4px;
+}
+
+.aurelia h1, .aurelia h2, .aurelia h3, .aurelia .ae-brand {
+  font-family: var(--ae-serif);
+  font-weight: normal;
+  line-height: 1.06;
+}
+
+.aurelia h2 { font-size: clamp(2.25rem, 5vw, 4.3rem); letter-spacing: -.045em; }
+.aurelia button { cursor: pointer; }
+.aurelia .ae-header {
+  min-height: 4.75rem;
+  padding: 1rem clamp(1.25rem, 6vw, 6rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.aurelia .ae-brand { font-size: 1.65rem; white-space: nowrap; }
+.aurelia .ae-brand span { font-style: italic; }
+.aurelia nav { display: flex; gap: clamp(1rem, 4vw, 3.5rem); }
+.aurelia nav a, .aurelia .ae-back { font-size: .875rem; }
+.aurelia .ae-back, .aurelia .ae-footer a { text-decoration: underline; text-underline-offset: .25em; }
+.aurelia .ae-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: max(35rem, calc(100svh - 4.75rem));
+  display: grid;
+  align-items: center;
+  background: #353c2f;
+  color: #fffcf3;
+}
+
+.aurelia .ae-hero > img, .aurelia .ae-hero::before {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 56%;
+  z-index: -2;
+}
+
+.aurelia .ae-hero::before {
+  content: '';
+  z-index: -1;
+  background: linear-gradient(90deg, #151a11df, #151a118c 49%, #151a111c), linear-gradient(0deg, #151a11a6, transparent 35%);
+}
+
+.aurelia .ae-hero-content {
+  padding: 5rem clamp(1.25rem, 8vw, 8rem) 7rem;
+  animation: aurelia-hero-enter .7s ease-out both;
+}
+@keyframes aurelia-hero-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.aurelia .ae-kicker { font-size: .875rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
+.aurelia h1 { margin: 1.25rem 0; font-size: clamp(3.4rem, 8vw, 8.1rem); letter-spacing: -.065em; }
+.aurelia h1 em { color: #e5d8b7; }
+.aurelia .ae-hero-content > p:not(.ae-kicker) { max-width: 27rem; margin-bottom: 1.75rem; }
+.aurelia .ae-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: .65rem 1.3rem;
+  background: var(--ae-olive);
+  color: white;
+  border: 1px solid transparent;
+  font-weight: 600;
+  font-size: .9rem;
+}
+
+.aurelia .ae-button-light { background: var(--ae-ivory); color: var(--ae-ink); }
+.aurelia .ae-button:hover { border-color: currentColor; }
+.aurelia .ae-featured {
+  position: absolute;
+  right: clamp(1.25rem, 6vw, 6rem);
+  bottom: 1.5rem;
+  padding: .65rem 0;
+  border-bottom: 1px solid #f7f4eb91;
+}
+
+.aurelia .ae-collection, .aurelia .ae-appointment, .aurelia .ae-footer { padding-inline: clamp(1.25rem, 8vw, 8rem); }
+.aurelia .ae-collection { padding-block: clamp(3.5rem, 8vw, 7rem); }
+.aurelia .ae-section-heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1rem 2rem; margin-bottom: 2rem; }
+.aurelia .ae-section-heading p, .aurelia .ae-result { color: var(--ae-muted); }
+.aurelia .ae-section-heading h2, .aurelia .ae-appointment h2 { margin-top: .5rem; }
+.aurelia .ae-filters {
+  border-block: 1px solid var(--ae-line);
+  padding: 1rem 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.aurelia label { display: grid; gap: .35rem; font-size: .875rem; font-weight: 600; min-width: 0; }
+.aurelia :is(input, select) {
+  width: 100%;
+  min-height: 3rem;
+  padding: .55rem .7rem;
+  border: 1px solid #888b7a;
+  border-radius: 0;
+  background: #fffdf6;
+  color: var(--ae-ink);
+  font: inherit;
+  font-weight: 400;
+}
+
+.aurelia .ae-reset { min-height: 3rem; padding: .45rem .8rem; text-decoration: underline; text-underline-offset: .22em; }
+.aurelia .ae-result { margin: 1rem 0; }
+.aurelia .ae-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1rem, 3vw, 2.5rem); }
+.aurelia .ae-property { border: 1px solid var(--ae-line); background: #fefbf4; }
+.aurelia .ae-property img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: #d0c9b3; }
+.aurelia .ae-property-body { padding: clamp(1.1rem, 2.5vw, 1.8rem); }
+.aurelia .ae-property h3 { font-size: clamp(1.85rem, 3vw, 2.65rem); margin: .35rem 0 .5rem; }
+.aurelia .ae-property-body > p { color: var(--ae-muted); }
+.aurelia .ae-property-bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 1rem; border-top: 1px solid var(--ae-line); margin-top: 1rem; padding-top: .6rem; }
+.aurelia .ae-property-bottom button { padding: .55rem 0; text-decoration: underline; text-underline-offset: .22em; }
+.aurelia .ae-appointment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(2rem, 6vw, 6rem);
+  padding-block: clamp(3.5rem, 8vw, 7rem);
+  background: var(--ae-olive);
+  color: var(--ae-ivory);
+}
+
+.aurelia .ae-appointment h2 + p { margin-top: 1rem; max-width: 29rem; }
+.aurelia .ae-form-note { margin-top: 1rem; color: #e7e3d4; }
+.aurelia .ae-appointment form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-content: start; }
+.aurelia .ae-appointment form > :is(button, p) { grid-column: 1 / -1; }
+.aurelia .ae-confirmation:empty { display: none; }
+.aurelia .ae-footer { padding-block: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: .7rem 1.5rem; justify-content: space-between; font-size: .875rem; }
+
+.aurelia .ae-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(46rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  overflow: auto;
+  background: var(--ae-ivory);
+  color: var(--ae-ink);
+  border: 1px solid var(--ae-line);
+}
+
+.aurelia .ae-dialog::backdrop { background: #10150dd9; }
+.aurelia .ae-detail { padding: clamp(1rem, 4vw, 2rem); }
+.aurelia .ae-detail header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.aurelia .ae-detail h2 { font-size: clamp(2rem, 5vw, 3.5rem); }
+.aurelia .ae-close { font-size: 1.8rem; line-height: 1; min-width: 2.75rem; min-height: 2.75rem; border: 1px solid var(--ae-line); }
+.aurelia .ae-detail img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #d0c9b3; }
+.aurelia .ae-detail figcaption { font-size: .875rem; color: var(--ae-muted); margin-top: .4rem; }
+.aurelia .ae-gallery-controls { display: flex; flex-wrap: wrap; gap: .4rem; margin: .8rem 0 1.2rem; }
+.aurelia .ae-gallery-controls button { min-height: 2.75rem; min-width: 2.75rem; padding: 0 .6rem; border: 1px solid var(--ae-line); }
+.aurelia .ae-gallery-controls button[aria-pressed="true"] { background: var(--ae-olive); color: white; }
+.aurelia .ae-detail-meta { font-weight: 600; margin-bottom: .5rem; }
+.aurelia .ae-detail > button { margin-top: 1rem; }
+
+@media (max-width: 720px) {
+  .aurelia .ae-header { flex-wrap: wrap; }
+  .aurelia nav { order: 1; width: 100%; }
+  .aurelia .ae-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .aurelia .ae-grid, .aurelia .ae-appointment { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .aurelia h1 { font-size: clamp(2.75rem, 12vw, 3.4rem); }
+  .aurelia .ae-appointment form { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurelia { scroll-behavior: auto; }
+  .aurelia .ae-hero-content { animation: none; }
+}
